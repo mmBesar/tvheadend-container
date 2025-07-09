@@ -1,0 +1,47 @@
+# .github/workflows/check-upstream.yml
+name: Check Upstream TVH Releases
+on:
+  schedule:
+    - cron: '0 * * * *'
+    # - cron: '@hourly'
+  
+jobs:
+  find-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get latest linuxserver/tvheadend release
+        id: getrel
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const latest = await github.repos.getLatestRelease({
+              owner: 'linuxserver', repo: 'docker-tvheadend'
+            });
+            core.setOutput('tag', latest.data.tag_name);
+
+      - name: Load last‑seen tag
+        id: readfile
+        run: |
+          LAST=$(cat .upstream-tag 2>/dev/null || echo "")
+          echo "last=$LAST" >> $GITHUB_OUTPUT
+
+      - name: Compare and dispatch
+        if: steps.getrel.outputs.tag != steps.readfile.outputs.last
+        run: |
+          echo "New upstream tag! was=${{ steps.readfile.outputs.last }} now=${{ steps.getrel.outputs.tag }}"
+          # record it for next time (commits back to main branch)
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          echo "${{ steps.getrel.outputs.tag }}" > .upstream-tag
+          git add .upstream-tag
+          git commit -m "chore: update upstream-tag to ${{ steps.getrel.outputs.tag }}"
+          git push
+
+      - name: Trigger our build
+        if: steps.getrel.outputs.tag != steps.readfile.outputs.last
+        uses: peter-evans/workflow-dispatch@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: image-build.yml
+          ref: main
