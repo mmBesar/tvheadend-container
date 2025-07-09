@@ -40,8 +40,13 @@ jobs:
 
       - name: Trigger our build
         if: steps.getrel.outputs.tag != steps.readfile.outputs.last
-        uses: peter-evans/workflow-dispatch@v1
+        uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          workflow: image-build.yml
-          ref: main
+          # event-type can be anything you like, but match it in your image-build.yml:
+          event-type: upstream-release
+          # optional: pass the new tag in the payload
+          client-payload: '{"tag":"${{ steps.getrel.outputs.tag }}"}'
+        env:
+          # GITHUB_TOKEN is automatically provided
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
