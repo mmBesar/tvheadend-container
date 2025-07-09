@@ -1,6 +1,5 @@
 # Use the same base as linuxserver/tvheadend
 FROM lscr.io/linuxserver/tvheadend:latest
-# (multi‑arch manifest that picks the right Alpine‑based image) :contentReference[oaicite:0]{index=0}
 
 # Become root to install packages
 USER root
@@ -20,19 +19,14 @@ RUN apk add --no-cache \
       python3 py3-pip git pipx \
  && pipx ensurepath \
  && pipx install --system-site-packages git+https://github.com/ImAleeexx/streamlink-drm \
-    # streamlink‑drm repo as in your script :contentReference[oaicite:1]{index=1} \
  && python3 -m pip install --upgrade --break-system-packages streamlink \
  && echo "Installed Streamlink: $(streamlink --version)" \
  && echo "Installed Streamlink‑DRM: $(streamlink --version-drm || echo 'unknown')"
 
-# Ensure the pipx binary path is in PATH (matches where 'abc' will run things)
-/* 
-   By default pipx links binaries into /root/.local/bin; 
-   linuxserver images use /config/.local/bin for per‑user installs
-*/
+# Ensure the pipx binary path is in PATH for the 'abc' user
+# By default pipx links binaries into /root/.local/bin
+# linuxserver images run tvheadend under the 'abc' user, whose home is /config
 ENV PATH="/config/.local/bin:${PATH}"
 
 # Drop back to the 'abc' user that runs tvheadend
 USER abc
-
-# All done – tvheadend startup remains unchanged
