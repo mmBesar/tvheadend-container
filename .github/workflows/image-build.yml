@@ -16,8 +16,8 @@ on:
     paths: [ '.github/workflows/image-build.yml', 'Dockerfile', '.upstream-tag' ]
 
   workflow_dispatch:
-  repository_dispatch:  # allows check-upstream to fire it
-    types: [github-action]
+  repository_dispatch:
+    types: [ upstream-release ]
 
 jobs:
   build:
