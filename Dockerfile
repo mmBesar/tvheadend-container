@@ -23,6 +23,7 @@ RUN apk add --no-cache \
       python3 py3-pip git pipx \
  && pipx ensurepath \
  && pipx install --system-site-packages git+https://github.com/ImAleeexx/streamlink-drm \
+ && mv /usr/local/bin/streamlink /usr/local/bin/streamlink-drm
  && python3 -m pip install --upgrade --break-system-packages streamlink \
  && echo "Streamlink: $(streamlink --version)" \
  && echo "Streamlink‑DRM: $(streamlink --version-drm || echo 'n/a')"
