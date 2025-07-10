@@ -1,24 +1,48 @@
 # .github/workflows/check-upstream.yml
 name: Check Upstream TVH Releases
+
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: '0 * * * *'
     # - cron: '@hourly'
-  
+
 jobs:
   find-and-dispatch:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Get latest linuxserver/tvheadend release
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get latest linuxserver/tvheadend tag (release or fallback)
         id: getrel
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const latest = await github.repos.getLatestRelease({
-              owner: 'linuxserver', repo: 'docker-tvheadend'
-            });
-            core.setOutput('tag', latest.data.tag_name);
+            let tag;
+            try {
+              const { data: rel } = await github.rest.repos.getLatestRelease({
+                owner: 'linuxserver',
+                repo:  'docker-tvheadend'
+              });
+              tag = rel.tag_name;
+            } catch (err) {
+              if (err.status === 404) {
+                const { data: tags } = await github.rest.repos.listTags({
+                  owner: 'linuxserver',
+                  repo:  'docker-tvheadend',
+                  per_page: 1
+                });
+                tag = tags[0].name;
+              } else {
+                throw err;
+              }
+            }
+            core.setOutput('tag', tag);
 
       - name: Load last‑seen tag
         id: readfile
@@ -26,27 +50,21 @@ jobs:
           LAST=$(cat .upstream-tag 2>/dev/null || echo "")
           echo "last=$LAST" >> $GITHUB_OUTPUT
 
-      - name: Compare and dispatch
+      - name: Compare and update tag, then dispatch build
         if: steps.getrel.outputs.tag != steps.readfile.outputs.last
         run: |
           echo "New upstream tag! was=${{ steps.readfile.outputs.last }} now=${{ steps.getrel.outputs.tag }}"
-          # record it for next time (commits back to main branch)
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           echo "${{ steps.getrel.outputs.tag }}" > .upstream-tag
           git add .upstream-tag
-          git commit -m "chore: update upstream-tag to ${{ steps.getrel.outputs.tag }}"
+          git commit -m "chore: bump upstream-tag to ${{ steps.getrel.outputs.tag }}"
           git push
-
-      - name: Trigger our build
+      - name: Trigger build workflow
         if: steps.getrel.outputs.tag != steps.readfile.outputs.last
         uses: peter-evans/repository-dispatch@v2
         with:
-          # event-type can be anything you like, but match it in your image-build.yml:
           event-type: upstream-release
-          # optional: pass the new tag in the payload
           client-payload: '{"tag":"${{ steps.getrel.outputs.tag }}"}'
         env:
-          # GITHUB_TOKEN is automatically provided
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
