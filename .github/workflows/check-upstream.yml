@@ -5,8 +5,9 @@ permissions:
   contents: write
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 0 * * *'
     # - cron: '@hourly'
 
   push:
@@ -16,8 +17,6 @@ on:
 
   pull_request:
     paths: [ '.github/workflows/check-upstream.yml', 'Dockerfile' ]
-
-  workflow_dispatch:
 
 jobs:
   find-and-dispatch:
