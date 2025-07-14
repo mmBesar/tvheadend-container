@@ -63,8 +63,8 @@ jobs:
         if: steps.getrel.outputs.tag != steps.readfile.outputs.last
         run: |
           echo "New upstream tag! was=${{ steps.readfile.outputs.last }} now=${{ steps.getrel.outputs.tag }}"
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
           echo "${{ steps.getrel.outputs.tag }}" > .upstream-tag
           git add .upstream-tag
           git commit -m "chore: bump upstream-tag to ${{ steps.getrel.outputs.tag }}"
