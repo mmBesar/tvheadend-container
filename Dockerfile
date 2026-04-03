@@ -12,21 +12,18 @@ ENV PIPX_HOME=/usr/local/pipx \
     PIPX_BIN_DIR=/usr/local/bin \
     PATH=/usr/local/bin:${PATH}
 
-# Step A — install system packages
 RUN apk add --no-cache \
       -U -X "$APK_MAIN" \
       -X "$APK_COMMUNITY" \
       -X "$APK_TESTING" \
-      python3 py3-pip git pipx
+      python3 py3-pip git pipx \
+      libxml2-dev libxslt-dev gcc musl-dev
 
-# Step B — install streamlink-drm
 RUN pipx install --system-site-packages \
       git+https://github.com/ImAleeexx/streamlink-drm \
  && mv /usr/local/bin/streamlink /usr/local/bin/streamlink-drm
 
-# Step C — install official streamlink
 RUN python3 -m pip install --upgrade --break-system-packages streamlink
 
-# Step D — verify
 RUN echo "Streamlink: $(streamlink --version)" \
  && echo "Streamlink-DRM: $(streamlink-drm --version || echo 'n/a')"
