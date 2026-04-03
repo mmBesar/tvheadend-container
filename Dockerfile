@@ -16,7 +16,7 @@ RUN apk add --no-cache \
       -U -X "$APK_MAIN" \
       -X "$APK_COMMUNITY" \
       -X "$APK_TESTING" \
-      python3 py3-pip git pipx \
+      python3 python3-dev py3-pip git pipx \
       libxml2-dev libxslt-dev gcc musl-dev
 
 RUN pipx install --system-site-packages \
