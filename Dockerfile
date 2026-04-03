@@ -11,24 +11,21 @@ ENV PIPX_HOME=/usr/local/pipx \
     PIPX_BIN_DIR=/usr/local/bin \
     PATH=/usr/local/bin:${PATH}
 
-# Install system packages + build deps for lxml
 RUN apk add --no-cache \
       -U -X "$APK_MAIN" \
       -X "$APK_COMMUNITY" \
       -X "$APK_TESTING" \
-      python3 python3-dev py3-pip git pipx \
-      libxml2-dev libxslt-dev gcc musl-dev
+      python3 py3-pip py3-lxml git pipx
 
-# Pre-install a lxml version that satisfies streamlink-drm's <5.0 constraint
-RUN python3 -m pip install --break-system-packages "lxml>=4.6.4,<5.0"
-
-# Install streamlink-drm (will reuse the already-installed lxml)
-RUN pipx install --system-site-packages \
+# Install streamlink-drm with lxml constraint ignored, using system lxml 6.x
+RUN pip install --break-system-packages --no-deps \
       git+https://github.com/ImAleeexx/streamlink-drm \
- && mv /usr/local/bin/streamlink /usr/local/bin/streamlink-drm
+ && pip install --break-system-packages \
+      certifi isodate pycountry pycryptodome PySocks requests urllib3 websocket-client \
+ && cp $(which streamlink) /usr/local/bin/streamlink-drm
 
-# Install official streamlink (supports lxml 5.x+, no conflict)
-RUN python3 -m pip install --upgrade --break-system-packages streamlink
+# Install official streamlink (will use same system lxml 6.x, no conflict)
+RUN pip install --break-system-packages --upgrade streamlink
 
 # Verify both
 RUN echo "Streamlink:     $(streamlink --version)" \
