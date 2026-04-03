@@ -1,3 +1,4 @@
+# 1) Base image
 FROM lscr.io/linuxserver/tvheadend:latest
 
 USER root
@@ -7,31 +8,25 @@ ENV APK_MAIN="http://dl-cdn.alpinelinux.org/alpine/${APK_BRANCH}/main" \
     APK_COMMUNITY="http://dl-cdn.alpinelinux.org/alpine/${APK_BRANCH}/community" \
     APK_TESTING="http://dl-cdn.alpinelinux.org/alpine/${APK_BRANCH}/testing"
 
-# ✅ Add build dependencies
+ENV PIPX_HOME=/usr/local/pipx \
+    PIPX_BIN_DIR=/usr/local/bin \
+    PATH=/usr/local/bin:${PATH}
+
+# Step A — install system packages
 RUN apk add --no-cache \
       -U -X "$APK_MAIN" \
       -X "$APK_COMMUNITY" \
       -X "$APK_TESTING" \
-      python3 py3-pip git \
-      build-base python3-dev libffi-dev openssl-dev cargo
+      python3 py3-pip git pipx
 
-# Create venvs
-RUN python3 -m venv /opt/streamlink \
- && python3 -m venv /opt/streamlink-drm
+# Step B — install streamlink-drm
+RUN pipx install --system-site-packages \
+      git+https://github.com/ImAleeexx/streamlink-drm \
+ && mv /usr/local/bin/streamlink /usr/local/bin/streamlink-drm
 
-# Normal streamlink
-RUN /opt/streamlink/bin/pip install --upgrade pip \
- && /opt/streamlink/bin/pip install streamlink
+# Step C — install official streamlink
+RUN python3 -m pip install --upgrade --break-system-packages streamlink
 
-# DRM streamlink (now succeeds)
-RUN /opt/streamlink-drm/bin/pip install --upgrade pip \
- && /opt/streamlink-drm/bin/pip install \
-      git+https://github.com/ImAleeexx/streamlink-drm
-
-# Expose both
-RUN ln -sf /opt/streamlink/bin/streamlink /usr/bin/streamlink \
- && ln -sf /opt/streamlink-drm/bin/streamlink /usr/bin/streamlink-drm
-
-# Verify
-RUN echo "Normal: $(streamlink --version)" \
- && echo "DRM: $(streamlink-drm --version)"
+# Step D — verify
+RUN echo "Streamlink: $(streamlink --version)" \
+ && echo "Streamlink-DRM: $(streamlink-drm --version || echo 'n/a')"
